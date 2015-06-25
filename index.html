@@ -1,19 +1,196 @@
-<!DOCTYPE html>
+<!DOCTYPE HTML>
 <html>
-<head lang="en">
-    <meta charset="UTF-8">
-    <title>Best Game Ever</title>
-    <link href="assets/css/main.css" type="text/css" rel="stylesheet">
-
+<head>
+	<meta charset="utf-8">
+	<title>TOP GAME</title>
+	<style type="text/css">
+	    body {
+	        background: url(https://pp.vk.me/c624731/v624731643/33002/DvpwOLSoAZE.jpg); 
+            background-repeat: repeat;
+	    }
+		canvas {
+			margin-left: auto;
+			margin-right: auto;
+		}
+	</style>
 </head>
 <body>
-    <form id="auto-form" method="post" >
+<script src="phaser.js"></script>
+<script type="text/javascript">
 
-        <input id="auto-form_login" type="text" placeholder="login">
-        <input id="auto-form_password" type="password" placeholder="password">
+	var game = new Phaser.Game(480, 640, Phaser.AUTO, '', {preload: preload, create: create, update: update});
 
-        <button type="submit">OK</button>
-    </form>
-    <script type="text/javascript" src="assets/js/form.js"></script>
+	var playerBet;
+	var computerBet;
+	var ball;
+
+	var playerWin = 0;
+	var computerWin = 0;
+
+	var computerBetSpeed = 700;
+	var ballSpeed = 400;
+	var ballReleased = false;
+
+	var level = 1;
+
+	var hits = 0;
+
+	function preload() {
+
+		game.load.image('bet', 'assets/bet.png');
+		game.load.image('ball', 'assets/ball.png');
+		game.load.image('background', 'https://pp.vk.me/c624731/v624731643/32ffb/Cv1iLyn2ADc.jpg');
+	}
+
+
+	function create() {
+		game.canvas.style.cursor = 'none';
+		game.add.tileSprite(0, 0, 480, 640, 'background');
+		playerBet = createBet(game.world.centerX, 600);
+		computerBet = createBet(game.world.centerX, 20);
+		textLevel = game.add.text(0, 0, 'Level: ' + level, {fill: '#efefef'})
+		text = game.add.text(game.world.centerX, game.world.centerY, '', {fill: '#efefef'})
+		text.anchor.setTo(0.5, 0.5);
+
+		ball = game.add.sprite(game.world.centerX, game.world.centerY, 'ball');
+		ball.anchor.setTo(0.5, 0.5);
+		ball.body.collideWorldBounds = true;
+		ball.body.bounce.setTo(1, 1);
+
+		emitter = game.add.emitter(0, 0, 200);
+
+
+		game.input.onDown.add(releaseBall, this);
+	}
+
+	function particleBurst(x, y) {
+
+		emitter.x = x;
+		emitter.y = y;
+
+		emitter.start(true, 500, null, 5);
+
+	}
+
+	function createBet(x, y) {
+		var bet = game.add.sprite(x, y, 'bet');
+		bet.anchor.setTo(0.5, 0.5);
+		bet.body.collideWorldBounds = true;
+		bet.body.bounce.setTo(1, 1);
+		bet.body.immovable = true;
+
+		return bet;
+	}
+
+	function update() {
+		playerBet.x = game.input.x;
+
+		var playerBetHalfWidth = playerBet.width / 2;
+
+		if (playerBet.x < playerBetHalfWidth) {
+			playerBet.x = playerBetHalfWidth;
+		}
+		else if (playerBet.x > game.width - playerBetHalfWidth) {
+			playerBet.x = game.width - playerBetHalfWidth;
+		}
+		if (computerBet.x - ball.x >= -15 && computerBet.x - ball.x <= 15) {
+			computerBet.body.velocity.x = 0;
+		}
+		else if (computerBet.x - ball.x < -15) {
+			computerBet.body.velocity.x = computerBetSpeed;
+		}
+		else if (computerBet.x - ball.x > 15) {
+			computerBet.body.velocity.x = -computerBetSpeed;
+		}
+		else {
+			computerBet.body.velocity.x = 0;
+		}
+
+		game.physics.collide(ball, playerBet, ballHitsBet, null, this);
+		game.physics.collide(ball, computerBet, ballHitsBet, null, this);
+
+		checkGoal();
+	}
+
+	function ballHitsBet(_ball, _bet) {
+		hits++;
+		if (hits == 3) {
+			nextLevel(); 
+		}
+		if (ball.y < 60) {
+			emitter.gravity = 5;
+		} else if (ball.y > 580) {
+			emitter.gravity = -5;
+		}
+		particleBurst(_bet.x, _bet.y);
+
+		var diff = 0;
+
+		if (_ball.x < _bet.x) {
+			diff = _bet.x - _ball.x;
+			_ball.body.velocity.x = (-12 * diff);
+		}
+		else if (_ball.x > _bet.x) {
+			diff = _ball.x - _bet.x;
+			_ball.body.velocity.x = (12 * diff);
+		}
+		else {
+			_ball.body.velocity.x = 2 + Math.random() * 8;
+		}
+	}
+
+	function checkGoal() {
+		if (ball.y < 15) {
+			nextLevel();
+			setBall();
+		} else if (ball.y > 625) {
+			loose();
+			setBall();
+		}
+	}
+
+	function setBall() {
+		if (ballReleased) {
+			ball.x = game.world.centerX;
+			ball.y = game.world.centerY;
+			ball.body.velocity.x = 0;
+			ball.body.velocity.y = 0;
+			ballReleased = false;
+		}
+
+	}
+
+	function releaseBall() {
+		if (!ballReleased) {
+			ball.body.velocity.x = ballSpeed + level * 20;
+			ball.body.velocity.y = -ballSpeed - level * 20;
+			ballReleased = true;
+		}
+	}
+
+	function showText(txt, timeout) {
+		text.setText(txt);
+		setTimeout(function() {
+			text.setText('');
+		}, timeout);
+	}
+
+	function nextLevel() {
+		level += 1;
+		hits = 0;
+		textLevel.setText('Level: ' + level)
+		showText('Level: ' + level, 2000);
+		computerBetSpeed += level * 2;
+	}
+
+	function loose() {
+		level = 1;
+		hits = 0;
+		textLevel.setText('Level: ' + level)
+		showText('You loose ', 2000);
+		computerBetSpeed = 250;
+	}
+
+</script>
 </body>
 </html>
